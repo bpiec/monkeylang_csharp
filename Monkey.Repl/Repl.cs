@@ -24,6 +24,7 @@ namespace Monkey.Repl
         public void Start(TextReader reader, TextWriter writer)
         {
             var env = new Environment();
+            var macroEnv = new Environment();
 
             while (true)
             {
@@ -44,7 +45,10 @@ namespace Monkey.Repl
                     continue;
                 }
 
-                var evaluated = new Evaluator.Evaluator().Eval(program, env);
+                var evaluator = new Evaluator.Evaluator();
+                evaluator.DefineMacros(program, macroEnv);
+                var expanded = evaluator.ExpandMacros(program, macroEnv);
+                var evaluated = evaluator.Eval(expanded, env);
                 if (evaluated != null)
                 {
                     writer.WriteLine(evaluated.Inspect());

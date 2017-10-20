@@ -170,7 +170,8 @@ namespace Monkey.Lexer.Tests
                                     ""foobar""
                                     ""foo bar""
                                     [1, 2];
-                                    {""foo"": ""bar""}";
+                                    {""foo"": ""bar""}
+                                    macro(x, y) { x + y; };";
 
             var tests = new List<Test>(new[]
             {
@@ -260,6 +261,19 @@ namespace Monkey.Lexer.Tests
                 new Test(TokenType.COLON, ":"),
                 new Test(TokenType.STRING, "bar"),
                 new Test(TokenType.RBRACE, "}"),
+                new Test(TokenType.MACRO, "macro"),
+                new Test(TokenType.LPAREN, "("),
+                new Test(TokenType.IDENT, "x"),
+                new Test(TokenType.COMMA, ","),
+                new Test(TokenType.IDENT, "y"),
+                new Test(TokenType.RPAREN, ")"),
+                new Test(TokenType.LBRACE, "{"),
+                new Test(TokenType.IDENT, "x"),
+                new Test(TokenType.PLUS, "+"),
+                new Test(TokenType.IDENT, "y"),
+                new Test(TokenType.SEMICOLON, ";"),
+                new Test(TokenType.RBRACE, "}"),
+                new Test(TokenType.SEMICOLON, ";"),
                 new Test(TokenType.EOF, "")
             });
 

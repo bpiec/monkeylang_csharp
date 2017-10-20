@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Monkey.Ast.Expressions
 {
-    public class FunctionLiteral : IExpression
+    public class MacroLiteral : IExpression
     {
         public string TokenLiteral => Token?.Literal;
 
@@ -26,30 +26,30 @@ namespace Monkey.Ast.Expressions
 
         public override bool Equals(object obj)
         {
-            if (!(obj is FunctionLiteral function))
+            if (!(obj is MacroLiteral macro))
             {
                 return false;
             }
 
-            if (Parameters == null && function.Parameters == null)
+            if (Parameters == null && macro.Parameters == null)
             {
                 return true;
             }
 
-            if (Parameters.Count != function.Parameters.Count)
+            if (Parameters.Count != macro.Parameters.Count)
             {
                 return false;
             }
 
             for (var i = 0; i < Parameters.Count; i++)
             {
-                if (!Parameters[i].Equals(function.Parameters[i]))
+                if (!Parameters[i].Equals(macro.Parameters[i]))
                 {
                     return false;
                 }
             }
 
-            return Body.Equals(function.Body);
+            return Body.Equals(macro.Body);
         }
 
         public override int GetHashCode()
@@ -60,7 +60,7 @@ namespace Monkey.Ast.Expressions
             return hashCode;
         }
 
-        public Token.Token Token { get; set; } // The 'fn' token
+        public Token.Token Token { get; set; } // The 'macro' token
         public List<Identifier> Parameters { get; set; }
         public BlockStatement Body { get; set; }
     }

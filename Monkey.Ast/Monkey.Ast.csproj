@@ -43,6 +43,7 @@
     <Compile Include="Expressions\ArrayLiteral.cs" />
     <Compile Include="Expressions\Boolean.cs" />
     <Compile Include="Expressions\CallExpression.cs" />
+    <Compile Include="Expressions\MacroLiteral.cs" />
     <Compile Include="Expressions\FunctionLiteral.cs" />
     <Compile Include="Expressions\HashLiteral.cs" />
     <Compile Include="Expressions\Identifier.cs" />
@@ -55,6 +56,7 @@
     <Compile Include="IExpression.cs" />
     <Compile Include="INode.cs" />
     <Compile Include="IStatement.cs" />
+    <Compile Include="Modifier.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Statements\BlockStatement.cs" />

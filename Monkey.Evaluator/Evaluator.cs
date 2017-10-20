@@ -2,6 +2,7 @@
 using Monkey.Ast.Expressions;
 using Monkey.Ast.Statements;
 using Monkey.Object;
+using Monkey.Token;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -161,6 +162,111 @@ namespace Monkey.Evaluator
             };
         }
 
+        public void DefineMacros(Program program, Environment env)
+        {
+            for (var i = 0; i < program.Statements.Count; i++)
+            {
+                var statement = program.Statements[i];
+                if (IsMacroDefinition(statement))
+                {
+                    AddMacro(statement, env);
+                    program.Statements.Remove(statement);
+                    i--;
+                }
+            }
+        }
+
+        public INode ExpandMacros(INode program, Environment env)
+        {
+            return Modifier.Modify(program, node =>
+            {
+                if (!(node is CallExpression callExpression))
+                {
+                    return node;
+                }
+
+                var macro = IsMacroCall(callExpression, env);
+                if (macro.Equals(default(Macro)))
+                {
+                    return node;
+                }
+
+                var args = QuoteArgs(callExpression);
+                var evalEnv = ExtendMacroEnv(macro, args);
+
+                var evaluated = Eval(macro.Body, evalEnv);
+
+                if (!(evaluated is Quote quote))
+                {
+                    throw new Exception("we only support returning AST-nodes from macros");
+                }
+
+                return quote.Node;
+            });
+        }
+
+        private bool IsMacroDefinition(IStatement node)
+        {
+            return (node as LetStatement)?.Value is MacroLiteral;
+        }
+
+        private void AddMacro(IStatement stmt, Environment env)
+        {
+            var letStatement = (LetStatement)stmt;
+            var macroLiteral = (MacroLiteral)letStatement.Value;
+
+            var macro = new Macro
+            {
+                Parameters = macroLiteral.Parameters,
+                Env = env,
+                Body = macroLiteral.Body
+            };
+
+            env.Set(letStatement.Name.Value, macro);
+        }
+
+        private Macro IsMacroCall(CallExpression exp, Environment env)
+        {
+            if (!(exp.Function is Identifier identifier))
+            {
+                return default(Macro);
+            }
+
+            var obj = env.Get(identifier.Value);
+            if (obj == null)
+            {
+                return default(Macro);
+            }
+
+            if (!(obj is Macro macro))
+            {
+                return default(Macro);
+            }
+
+            return macro;
+        }
+
+        private Quote[] QuoteArgs(CallExpression exp)
+        {
+            return exp.Arguments.Select(a => new Quote
+            {
+                Node = a
+            }).ToArray();
+        }
+
+        private Environment ExtendMacroEnv(Macro macro, Quote[] args)
+        {
+            var extended = Environment.NewEnclosedEnvironment(macro.Env);
+
+            for (var paramIdx = 0; paramIdx < macro.Parameters.Count; paramIdx++)
+            {
+                var param = macro.Parameters[paramIdx];
+                extended.Set(param.Value, args[paramIdx]);
+            }
+
+            return extended;
+        }
+
         public IObject Eval(INode node, Environment env)
         {
             // Statements
@@ -256,11 +362,17 @@ namespace Monkey.Evaluator
             }
             if (node is CallExpression call)
             {
+                if (string.Equals(call.Function.TokenLiteral, "quote", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Quote(call.Arguments[0], env);
+                }
+
                 var fn = Eval(call.Function, env);
                 if (IsError(fn))
                 {
                     return fn;
                 }
+
                 var args = EvalExpressions(call.Arguments, env);
                 if (args.Length == 1 && IsError(args[0]))
                 {
@@ -425,6 +537,85 @@ namespace Monkey.Evaluator
             }
 
             return NewError($"identifier not found: {node.Value}");
+        }
+
+        private IObject Quote(INode node, Environment env)
+        {
+            node = EvalUnquoteCalls(node, env);
+            return new Quote
+            {
+                Node = node
+            };
+        }
+
+        private INode EvalUnquoteCalls(INode quoted, Environment env)
+        {
+            return Modifier.Modify(quoted, node =>
+            {
+                if (!IsUnquotedCall(node))
+                {
+                    return node;
+                }
+
+                if (!(node is CallExpression call))
+                {
+                    return node;
+                }
+
+                if (call.Arguments.Count != 1)
+                {
+                    return node;
+                }
+
+                var unqoted = Eval(call.Arguments[0], env);
+                return ConvertObjectToAstNode(unqoted);
+            });
+        }
+
+        private INode ConvertObjectToAstNode(IObject obj)
+        {
+            if (obj is Integer integer)
+            {
+                var t = new Token.Token
+                {
+                    Type = TokenType.INT,
+                    Literal = integer.Value.ToString()
+                };
+                return new IntegerLiteral
+                {
+                    Token = t,
+                    Value = integer.Value
+                };
+            }
+            if (obj is Boolean boolean)
+            {
+                var t = new Token.Token
+                {
+                    Type = boolean.Value ? TokenType.TRUE : TokenType.FALSE,
+                    Literal = boolean.Value.ToString().ToLower()
+                };
+                return new Ast.Expressions.Boolean
+                {
+                    Token = t,
+                    Value = boolean.Value
+                };
+            }
+            if (obj is Quote quote)
+            {
+                return quote.Node;
+            }
+
+            return null;
+        }
+
+        private bool IsUnquotedCall(INode node)
+        {
+            if (!(node is CallExpression callExpression))
+            {
+                return false;
+            }
+
+            return string.Equals(callExpression.Function.TokenLiteral, "unquote", StringComparison.OrdinalIgnoreCase);
         }
 
         private IObject[] EvalExpressions(IEnumerable<IExpression> exps, Environment env)

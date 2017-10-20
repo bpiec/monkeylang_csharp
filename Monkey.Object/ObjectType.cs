@@ -11,6 +11,8 @@
         STRING,
         BUILTIN,
         ARRAY,
-        HASH
+        HASH,
+        QUOTE,
+        MACRO
     }
 }

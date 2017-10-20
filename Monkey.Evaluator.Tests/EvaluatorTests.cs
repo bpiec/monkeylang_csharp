@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Monkey.Ast;
 using Monkey.Object;
 using System.Collections.Generic;
 
@@ -502,6 +503,121 @@ if (10 > 1) {
             }
         }
 
+        [TestMethod]
+        public void TestQuote()
+        {
+            var tests = new Dictionary<string, string>
+            {
+                {"quote(5)", "5"},
+                {"quote(5 + 8)", "(5 + 8)"},
+                {"quote(foobar)", "foobar"},
+                {"quote(foobar + barfoo)", "(foobar + barfoo)"}
+            };
+
+            foreach (var tt in tests)
+            {
+                var evaluated = TestEval(tt.Key);
+                Assert.IsTrue(evaluated is Quote, $"expected Quote. got={evaluated.GetType().Name} ({evaluated})");
+                var quote = (Quote)evaluated;
+
+                Assert.IsNotNull(quote.Node, "quote.Node is null");
+
+                Assert.AreEqual(tt.Value, quote.Node.ToString(), $"not equal. got={quote.Node.ToString()}, want={tt.Value}");
+            }
+        }
+
+        [TestMethod]
+        public void TestQuoteUnquote()
+        {
+            var tests = new Dictionary<string, string>
+            {
+                {"quote(unquote(4))", "4"},
+                {"quote(unquote(4 + 4))", "8"},
+                {"quote(8 + unquote(4 + 4))", "(8 + 8)"},
+                {"quote(unquote(4 + 4) + 8)", "(8 + 8)"},
+                {"let foobar = 8; quote(foobar)", "foobar"},
+                {"let foobar = 8; quote(unquote(foobar))", "8"},
+                {"quote(unquote(true))", "true"},
+                {"quote(unquote(true == false))", "false"},
+                {"quote(unquote(quote(4 + 4)))", "(4 + 4)"},
+                {"let quotedInfixExpression = quote(4 + 4); quote(unquote(4 + 4) + unquote(quotedInfixExpression))", "(8 + (4 + 4))"}
+            };
+
+            foreach (var tt in tests)
+            {
+                var evaluated = TestEval(tt.Key);
+                Assert.IsTrue(evaluated is Quote, $"expected Quote. got={evaluated.GetType().Name} ({evaluated})");
+                var quote = (Quote)evaluated;
+
+                Assert.IsNotNull(quote.Node, "quote.Node is null");
+
+                Assert.AreEqual(tt.Value, quote.Node.ToString(), $"not equal. got={quote.Node.ToString()}, want={tt.Value}");
+            }
+        }
+
+        [TestMethod]
+        public void TestDefineMacros()
+        {
+            const string input = @" let number = 1;
+                                    let function = fn(x, y) { x + y };
+                                    let mymacro = macro(x, y) { x + y; };";
+
+            var env = new Environment();
+            var program = TestParseProgram(input);
+
+            new Evaluator().DefineMacros(program, env);
+
+            Assert.AreEqual(2, program.Statements.Count, $"Wrong number of statements. got={program.Statements.Count}");
+
+            Assert.IsNull(env.Get("number"), "number should not be defined");
+            Assert.IsNull(env.Get("function"), "function should not be defined");
+
+            var obj = env.Get("mymacro");
+            Assert.IsNotNull(obj, "macro not in environment.");
+
+            Assert.IsTrue(obj is Macro, $"object is not Macro. got={obj.GetType().Name} (obj)");
+            var macro = (Macro)obj;
+
+            Assert.AreEqual(2, macro.Parameters.Count, $"Wrong number of macro parameters. got={macro.Parameters.Count}");
+
+            Assert.AreEqual("x", macro.Parameters[0].ToString(), $"parameter is not 'x'. got={macro.Parameters[0]}");
+            Assert.AreEqual("y", macro.Parameters[1].ToString(), $"parameter is not 'y'. got={macro.Parameters[1]}");
+
+            const string expectedBody = "(x + y)";
+            Assert.AreEqual(expectedBody, macro.Body.ToString(), $"body is not {expectedBody}. got={macro.Body}");
+        }
+
+        [TestMethod]
+        public void TestExpandMacros()
+        {
+            var tests = new Dictionary<string, string>
+            {
+                {"let infixExpression = macro() { quote(1 + 2); }; infixExpression(); ", "(1 + 2)"},
+                {"let reverse = macro(a, b) { quote(unquote(b) - unquote(a)); }; reverse(2 + 2, 10 - 5); ", "(10 - 5) - (2 + 2)"},
+                {@" let unless = macro(condition, consequence, alternative) {
+                        quote(if (!(unquote(condition))) {
+                                unquote(consequence);
+                              } else {
+                                unquote(alternative);
+                              });
+                    };
+                    unless(10 > 5, puts(""not greater""), puts(""greater""));", "if (!(10 > 5)) { puts(\"not greater\") } else { puts(\"greater\") }" }
+            };
+
+            foreach (var tt in tests)
+            {
+                var expected = TestParseProgram(tt.Value);
+                var program = TestParseProgram(tt.Key);
+
+                var env = new Environment();
+                var evaluator = new Evaluator();
+                evaluator.DefineMacros(program, env);
+                var expanded = evaluator.ExpandMacros(program, env);
+
+                Assert.AreEqual(expected.ToString(), expanded.ToString(), $"not equal. want={expected.ToString()}, got={expanded.ToString()}");
+            }
+        }
+
         private IObject TestEval(string input)
         {
             var l = new Lexer.Lexer(input);
@@ -533,6 +649,13 @@ if (10 > 1) {
         private void TestNullObject(IObject obj)
         {
             Assert.IsTrue(obj is Null, $"object is not NULL. got={obj.Type}");
+        }
+
+        private Program TestParseProgram(string input)
+        {
+            var l = new Lexer.Lexer(input);
+            var p = new Parser.Parser(l);
+            return p.ParseProgram();
         }
     }
 }

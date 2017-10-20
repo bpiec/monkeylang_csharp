@@ -12,7 +12,8 @@ namespace Monkey.Token
             { "false", TokenType.FALSE },
             { "if", TokenType.IF },
             { "else", TokenType.ELSE },
-            { "return", TokenType.RETURN }
+            { "return", TokenType.RETURN },
+            { "macro", TokenType.MACRO }
         };
 
         public TokenType Type { get; set; }

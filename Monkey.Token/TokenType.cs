@@ -47,6 +47,7 @@
         FALSE,
         IF,
         ELSE,
-        RETURN
+        RETURN,
+        MACRO
     }
 }

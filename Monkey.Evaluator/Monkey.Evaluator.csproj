@@ -52,6 +52,10 @@
       <Project>{1314D5ED-D47A-47E2-A1AD-CDE082DAD1E4}</Project>
       <Name>Monkey.Object</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Monkey.Token\Monkey.Token.csproj">
+      <Project>{62C09124-EBA8-44DC-9CA0-662B47F34AC3}</Project>
+      <Name>Monkey.Token</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

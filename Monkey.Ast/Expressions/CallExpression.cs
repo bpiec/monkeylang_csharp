@@ -6,7 +6,7 @@ namespace Monkey.Ast.Expressions
 {
     public class CallExpression : IExpression
     {
-        public string TokenLiteral => Token.Literal;
+        public string TokenLiteral => Token?.Literal;
 
         public override string ToString()
         {

@@ -1,10 +1,11 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 
 namespace Monkey.Ast.Statements
 {
     public class ReturnStatement : IStatement
     {
-        public string TokenLiteral => Token.Literal;
+        public string TokenLiteral => Token?.Literal;
 
         public override string ToString()
         {
@@ -16,6 +17,16 @@ namespace Monkey.Ast.Statements
             }
             o.Append(";");
             return o.ToString();
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is ReturnStatement statement && EqualityComparer<IExpression>.Default.Equals(ReturnValue, statement.ReturnValue);
+        }
+
+        public override int GetHashCode()
+        {
+            return -1579408684 + EqualityComparer<IExpression>.Default.GetHashCode(ReturnValue);
         }
 
         public Token.Token Token { get; set; } // the 'return' token

@@ -41,6 +41,7 @@ namespace Monkey.Parser
             RegisterPrefix(TokenType.STRING, ParseStringLiteral);
             RegisterPrefix(TokenType.LBRACKET, ParseArrayLiteral);
             RegisterPrefix(TokenType.LBRACE, ParseHashLiteral);
+            RegisterPrefix(TokenType.MACRO, ParseMacroLiteral);
 
             _infixParseFns = new Dictionary<TokenType, InfixParseFn>();
             RegisterInfix(TokenType.PLUS, ParseInfixExpression);
@@ -455,6 +456,30 @@ namespace Monkey.Parser
             }
 
             return hash;
+        }
+
+        private IExpression ParseMacroLiteral()
+        {
+            var lit = new MacroLiteral
+            {
+                Token = _currentToken
+            };
+
+            if (!ExpectPeek(TokenType.LPAREN))
+            {
+                return null;
+            }
+
+            lit.Parameters = ParseFunctionParameters();
+
+            if (!ExpectPeek(TokenType.LBRACE))
+            {
+                return null;
+            }
+
+            lit.Body = ParseBlockStatement();
+
+            return lit;
         }
 
         private BlockStatement ParseBlockStatement()

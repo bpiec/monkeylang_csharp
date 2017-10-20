@@ -799,6 +799,37 @@ namespace Monkey.Parser.Tests
             }
         }
 
+        [TestMethod]
+        public void TestMacroLiteralParsing()
+        {
+            const string input = "macro(x, y) { x + y; }";
+
+            var l = new Lexer.Lexer(input);
+            var p = new Parser(l);
+            var program = p.ParseProgram();
+            CheckParserErrors(p);
+
+            Assert.AreEqual(1, program.Statements.Count, $"program.Statements does not contain 1 statement. got={program.Statements.Count}");
+
+            var stmt = program.Statements[0] as ExpressionStatement;
+            Assert.IsNotNull(stmt, $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType().Name}");
+
+            var macro = stmt.Expression as MacroLiteral;
+            Assert.IsNotNull(macro, $"stmt.Expression is not ast.MacroLiteral. got={stmt.Expression.GetType().Name}");
+
+            Assert.AreEqual(2, macro.Parameters.Count, $"macro literal parameters wrong. want 2, got={macro.Parameters.Count}");
+
+            TestLiteralExpression(macro.Parameters[0], "x");
+            TestLiteralExpression(macro.Parameters[1], "y");
+
+            Assert.AreEqual(1, macro.Body.Statements.Count, $"macro.Body.Statements has not 1 statement. got={macro.Body.Statements.Count}");
+
+            var bodyStmt = macro.Body.Statements[0] as ExpressionStatement;
+            Assert.IsNotNull(bodyStmt, $"macro body stmt is not ast.ExpressionStatement. got={macro.Body.Statements[0].GetType().Name}");
+
+            TestInfixExpression(bodyStmt.Expression, "x", "+", "y");
+        }
+
         private void TestIntegerLiteral(IExpression il, long value)
         {
             var integ = il as IntegerLiteral;

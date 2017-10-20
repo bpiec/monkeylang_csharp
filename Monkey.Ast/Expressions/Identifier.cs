@@ -2,7 +2,7 @@
 {
     public class Identifier : IExpression
     {
-        public string TokenLiteral => Token.Literal;
+        public string TokenLiteral => Token?.Literal;
 
         public override string ToString() => Value;
 

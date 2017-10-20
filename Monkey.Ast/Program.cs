@@ -34,5 +34,38 @@ namespace Monkey.Ast
             }
             return o.ToString();
         }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Program program))
+            {
+                return false;
+            }
+
+            if (Statements == null && program.Statements == null)
+            {
+                return true;
+            }
+
+            if (Statements.Count != program.Statements.Count)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < Statements.Count; i++)
+            {
+                if (!Statements[i].Equals(program.Statements[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override int GetHashCode()
+        {
+            return (Statements != null ? Statements.GetHashCode() : 0);
+        }
     }
 }
